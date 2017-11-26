@@ -1,4 +1,6 @@
 const express = require('express');
+const BinaryServer = require('binaryjs').BinaryServer;
+const wav = require('wav');
 const compression = require('compression');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -26,6 +28,32 @@ app.get('/', (req, res) => {
 app.listen(app.get('port'), () => {
     console.log(('  App is running at http://localhost:%d in %s mode'), app.get('port'), app.get('env'));
     console.log('  Press CTRL-C to stop\n');
+});
+
+const demoWav = 'demo.wav';
+binaryServer = new BinaryServer({
+    host: process.env.SOCKET_HOST,
+    port: process.env.SOCKET_PORT
+});
+binaryServer.on('connection', function(client) {
+    console.log('new connection');
+    var fileWriter = new wav.FileWriter(demoWav, {
+        channels: 1,
+        sampleRate: 48000,
+        bitDepth: 16
+      });
+
+    client.on('stream', function(stream, meta) {
+        console.log('streaming...');
+
+        stream.pipe(fileWriter);
+
+        stream.on('end', function() {
+            fileWriter.end();
+
+            console.log('wrote to file ' + demoWav);
+        });
+    });
 });
 
 module.exports = app;
